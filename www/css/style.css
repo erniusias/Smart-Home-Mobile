@@ -68,10 +68,42 @@
 	align-items: center;
 }
 
+/* Hack for ionicicons v2 (no animation code) */
+/* https://github.com/driftyco/ionicons/issues/111#issuecomment-65788526 */
+.ion-spin-animation { -webkit-animation: spin 1s infinite linear; -moz-animation: spin 1s infinite linear; -o-animation: spin 1s infinite linear; animation: spin 1s infinite linear; }
+@-moz-keyframes spin { 0% { -moz-transform: rotate(0deg); }
+    100% { -moz-transform: rotate(359deg); } }
+@-webkit-keyframes spin { 0% { -webkit-transform: rotate(0deg); }
+    100% { -webkit-transform: rotate(359deg); } }
+@-o-keyframes spin { 0% { -o-transform: rotate(0deg); }
+    100% { -o-transform: rotate(359deg); } }
+@-ms-keyframes spin { 0% { -ms-transform: rotate(0deg); }
+    100% { -ms-transform: rotate(359deg); } }
+@keyframes spin { 0% { transform: rotate(0deg); }
+    100% { transform: rotate(359deg); } }
+.ion-load-b.ion-spin-animation { -webkit-animation-timing-function: steps(8, start); -moz-animation-timing-function: steps(8, start); animation-timing-function: steps(8, start); }
+.ion-load-c.ion-spin-animation { -webkit-animation-timing-function: steps(8, start); -moz-animation-timing-function: steps(8, start); animation-timing-function: steps(8, start); }
+
 .last-updated-row {
 	text-align: center;
 	font-size: smaller;
 	padding-bottom: 10px;
+}
+
+.progress-spinner {
+    margin-left: 50px;
+    margin-right: 50px;
+    height: 28px;
+    width: 28px;
+    animation: progress-spinner-animation 0.8s infinite linear;
+    border: 8px solid #fff;
+    border-right-color: transparent;
+    border-radius: 50%;
+}
+
+@keyframes progress-spinner-animation {
+    0%    { transform: rotate(0deg); }
+    100%  { transform: rotate(360deg); }
 }
 
 /** Configure PIN View ***************************************************************************/
@@ -157,4 +189,29 @@
 .thermo-control-buttons {
 	padding-top: 20px;
 	padding-bottom: 10px;
+}
+
+/** Dashboard Views Shared  **********************************************************************/
+
+.floorplan {
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    height: 100%;
+    border: 1px solid #4a87ee;
+}
+
+/** Dashboard Configuration View *****************************************************************/
+
+.dashboard-config-view .bar-subheader {
+    opacity: 0.75;
+    height: 60px;
+}
+
+.dashboard-config-view .bar-subheader .item-toggle {
+    text-align: right;
+}
+
+.dashboard-config-view .bar-subheader .col {
+    padding: 0px;
 }

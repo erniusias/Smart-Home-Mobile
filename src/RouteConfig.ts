@@ -28,6 +28,16 @@ module JustinCredible.SmartHomeMobile {
 
             //#region Main Application Areas
 
+            $stateProvider.state("app.dashboard", {
+                url: "/dashboard",
+                views: {
+                    "tab-dashboard": {
+                        templateUrl: "templates/Dashboard.html",
+                        controller: Controllers.DashboardController.ID
+                    }
+                }
+            });
+
             $stateProvider.state("app.security", {
                 url: "/security",
                 views: {
@@ -144,6 +154,16 @@ module JustinCredible.SmartHomeMobile {
                 }
             });
 
+            $stateProvider.state("app.dashboard-config", {
+                url: "/settings/dashboard",
+                views: {
+                    "tab-settings": {
+                        templateUrl: "templates/Settings/Dashboard-Config.html",
+                        controller: Controllers.DashboardConfigController.ID
+                    }
+                }
+            });
+
             $stateProvider.state("app.cameras-list", {
                 url: "/settings/cameras",
                 views: {
@@ -208,14 +228,20 @@ module JustinCredible.SmartHomeMobile {
                 url: "/settings/logs",
                 views: {
                     "tab-settings": {
-                        templateUrl: "templates/Settings/Logs.html",
-                        controller: Controllers.LogsController.ID
+                        templateUrl: "templates/Settings/Logs-List.html",
+                        controller: Controllers.LogsListController.ID
                     }
                 }
             });
 
             $stateProvider.state("app.log-entry", {
                 url: "/settings/log-entry/:id",
+                params: {
+                    id: {
+                        value: "",
+                        squash: false
+                    }
+                },
                 views: {
                     "tab-settings": {
                         templateUrl: "templates/Settings/Log-Entry.html",

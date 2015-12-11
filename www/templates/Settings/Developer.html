@@ -1,5 +1,9 @@
 ﻿<ion-view view-title="Development Tools">
 
+    <ion-nav-buttons side="right">
+        <button class="button icon-left ion-pause" ng-click="controller.debuggerBreak_click()">Debug</button>
+    </ion-nav-buttons>
+
     <ion-content class="has-header">
 
         <div class="list card">
@@ -17,23 +21,6 @@
                 </label>
             </label>
 
-            <label class="item item-toggle">
-                Log Request/Responses
-                <label class="toggle toggle-balanced">
-                    <input type="checkbox"
-                        ng-model="viewModel.enableFullHttpLogging"
-                        ng-change="controller.enableFullHttpLogging_change()">
-                    <div class="track">
-                        <div class="handle"></div>
-                    </div>
-                </label>
-            </label>
-
-            <label class="item item-readonly-label" ng-click="controller.logResponseErrors_click()">
-                <span>Log Response Errors</span>
-                <span>true</span>
-            </label>
-
         </div>
 
         <div class="list card">
@@ -45,33 +32,43 @@
                 View Logs
             </div>
 
-            <label class="item item-toggle">
-                Log to Local Storage
-                <label class="toggle toggle-balanced">
-                    <input type="checkbox"
-                        ng-model="viewModel.logToLocalStorage"
-                        ng-change="controller.logToLocalStorage_change()">
-                    <div class="track">
-                        <div class="handle"></div>
-                    </div>
-                </label>
-            </label>
-
         </div>
 
         <div class="list card">
             <div class="item item-divider">Platform Tools</div>
 
             <label class="item item-readonly-label">
-                <span>Device.Platform</span>
+                <span>Platform</span>
                 <span>{{viewModel.devicePlatform}}</span>
             </label>
 
-            <button class="button button-block button-positive" ng-click="controller.addServicesToGlobalScope_click()">Add Services to Global Scope</button>
-            <button class="button button-block button-positive" ng-click="controller.setRequirePinThreshold_click()">Set Require PIN Threshold</button>
-            <button class="button button-block button-positive" ng-click="controller.resetPinTimeout_click()">Reset PIN Entry Timeout</button>
-            <button class="button button-block button-positive" ng-click="controller.reEnableOnboarding_click()">Re-enable Onboarding</button>
+            <label class="item item-readonly-label">
+                <span>Model</span>
+                <span>{{viewModel.deviceModel}}</span>
+            </label>
 
+            <label class="item item-readonly-label">
+                <span>OS Version</span>
+                <span>{{viewModel.deviceOsVersion}}</span>
+            </label>
+
+            <label class="item item-readonly-label"
+                ng-click="controller.copyValue_click(viewModel.deviceUuid, 'Device UUID')">
+                <span>UUID</span>
+                <span>{{viewModel.deviceUuid}}</span>
+            </label>
+
+            <label class="item item-readonly-label">
+                <span>Cordova</span>
+                <span>{{viewModel.deviceCordovaVersion}}</span>
+            </label>
+
+            <div class="item">
+                <button class="button button-block button-positive" ng-click="controller.addServicesToGlobalScope_click()">Add Services to Global Scope</button>
+                <button class="button button-block button-positive" ng-click="controller.setRequirePinThreshold_click()">Set Require PIN Threshold</button>
+                <button class="button button-block button-positive" ng-click="controller.resetPinTimeout_click()">Reset PIN Entry Timeout</button>
+                <button class="button button-block button-positive" ng-click="controller.reEnableOnboarding_click()">Re-enable Onboarding</button>
+            </div>
         </div>
 
         <div class="list card">

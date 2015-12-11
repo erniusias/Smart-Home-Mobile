@@ -21,7 +21,7 @@
         constructor(
             private _isRipple_: boolean,
             private _isCordova_: boolean,
-            private buildVars: BuildVars,
+            private buildVars: Interfaces.BuildVars,
             private _isChromeExtension_: boolean) {
         }
 
@@ -71,39 +71,74 @@
          * Used to check if the current platform is Android.
          */
         public get isAndroid(): boolean {
-            return typeof(device) !== "undefined" && device.platform === "Android";
+            return this.device.platform === "Android";
         }
 
         /**
          * Used to check if the current platform is iOS.
          */
         public get isIos(): boolean {
-            return typeof (device) !== "undefined" && device.platform === "iOS";
+            return this.device.platform === "iOS";
         }
 
         /**
          * Used to check if the current platform is Windows Phone 8.x.
          */
         public get isWindowsPhone8(): boolean {
-            return typeof(device) !== "undefined" && device.platform === "WP8";
+            return this.device.platform === "WP8";
         }
 
         /**
-         * Used to check if the current platform is Windows 8 (desktop OS).
+         * Used to check if the current platform is Windows 8.
          */
         public get isWindows8(): boolean {
-            return typeof(device) !== "undefined" && device.platform === "Windows8";
+            return this.device.platform === "Windows8";
         }
 
         /**
-        * Used to return the name of the platform as specified via Cordova.
-        */
-        public get platform(): string {
-            if (typeof (device) === "undefined") {
-                return typeof(window.ripple) !== "undefined" ? "Ripple" : "Unknown";
+         * Used to check if the current platform is Windows 10 / UWP.
+         */
+        public get isWindows(): boolean {
+            return this.device.platform === "windows";
+        }
+
+        /**
+         * Used to check if the current platfor is Windows 10 /UWP running on
+         * an IoT device (eg Raspberry Pi 2).
+         */
+        public get isWindowsIoT(): boolean {
+            return this.device.platform === "Windows.IoT";
+        }
+
+        /**
+         * Used to return the global device object.
+         */
+        public get device(): Device {
+            if (typeof(device) === "undefined") {
+                return {
+                    cordova: "unknown",
+                    platform: "unknown",
+                    model: "unknown",
+                    uuid: "unknown",
+                    version: "unknown",
+                    capture: null
+                };
+            }
+            else if (this.getValue(window, "Windows.System.Profile.AnalyticsInfo.versionInfo.deviceFamily") === "Windows.IoT") {
+                // Cordova will have created device object for Windows IoT devices, but it
+                // won't have any useful data. Here we can mock one up with at least a little
+                // bit of useful information.
+                return {
+                    cordova: "N/A",
+                    platform: "Windows.IoT",
+                    model: "unknown",
+                    uuid: "unknown",
+                    version: this.getValue(window, "Windows.System.Profile.AnalyticsInfo.versionInfo.deviceFamilyVersion"),
+                    capture: null
+                };
             }
             else {
-                return device.platform;
+                return device;
             }
         }
 
@@ -613,6 +648,62 @@
             return stackTrace.join("\n\n");
         }
 
+        /**
+         * This is a helper method for removing sensitive data from a request response body for logging.
+         * 
+         * If the given config object has its logRequestBody property set to false, the data property
+         * will be set to "[FILTERED]" so that it can be logged without the data.
+         * 
+         * It is important to note that this method returns a deep copy of the given object if
+         * logRequestBody is false so that it will not mutate the object. In the case of logRequestBody
+         * being set to true, the original, unaltered object will be passed through.
+         * 
+         * @param config The HTTP configuration object to be sanitized for logging.
+         * @returns A deep copy with the request body removed or a unaltered pass through of the object.
+         */
+        public sanitizeConfigForLogging(config: Interfaces.RequestConfig): Interfaces.RequestConfig {
+
+            if (config && config.logRequestBody === false) {
+
+                let filteredConfig = _.cloneDeep(config);
+                filteredConfig.data = "[FILTERED]";
+                return filteredConfig;
+            }
+            else {
+                return config;
+            }
+        }
+
+        /**
+         * This is a helper method for removing sensitive data from a request response body (on the HTTP
+         * response object) for logging.
+         * 
+         * If the given response's config object has its logRequestBody property set to false, the data
+         * config.data will be set to "[FILTERED]" so that it can be logged without the data.
+         * 
+         * It is important to note that this method returns a deep copy of the given object if
+         * logRequestBody is false so that it will not mutate the object. In the case of logRequestBody
+         * being set to true, the original, unaltered object will be passed through.
+         * 
+         * @param config The HTTP response's request configuration object to be sanitized for logging.
+         * @returns A deep copy with the request body removed or a unaltered pass through of the object.
+         */
+        public sanitizeResponseForLogging(httpResponse: ng.IHttpPromiseCallbackArg<any>): ng.IHttpPromiseCallbackArg<any> {
+
+            /* tslint:disable:no-string-literal */
+
+            if (httpResponse && httpResponse.config && httpResponse.config.data && httpResponse.config["logRequestBody"] === false) {
+
+                let filteredResponse = _.cloneDeep(httpResponse);
+                filteredResponse.config.data = "[FILTERED]";
+                return filteredResponse;
+            }
+            else {
+                return httpResponse;
+            }
+
+            /* tslint:enable:no-string-literal */
+        }
         //#endregion
     }
 }

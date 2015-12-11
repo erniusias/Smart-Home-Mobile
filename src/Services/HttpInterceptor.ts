@@ -26,8 +26,8 @@
             return this.$injector.get(Utilities.ID);
         }
 
-        private get UiHelper(): UiHelper {
-            return this.$injector.get(UiHelper.ID);
+        private get Plugins(): Plugins {
+            return this.$injector.get(Plugins.ID);
         }
 
         private get Preferences(): Preferences {
@@ -101,13 +101,6 @@
                 return config;
             }
 
-            console.log("HttpInterceptor.request: " + config.url, [config]);
-
-            // Log the request data to disk.
-            if (this.Configuration.enableFullHttpLogging) {
-                this.Logger.logHttpRequestConfig(config);
-            }
-
             // Keep track of how many requests are in progress and show spinners etc.
             this.handleRequestStart(config);
 
@@ -128,12 +121,7 @@
                 return httpResponse;
             }
 
-            console.log("HttpInterceptor.response: " + httpResponse.config.url, [httpResponse]);
-
-            // Log the response data to disk.
-            if (this.Configuration.enableFullHttpLogging) {
-                this.Logger.logHttpResponse(httpResponse);
-            }
+            this.Logger.debug(HttpInterceptor.ID, "response", "A response was received.", this.Utilities.sanitizeResponseForLogging(httpResponse));
 
             // Keep track of how many requests are still in progress and hide spinners etc.
             this.handleResponseEnd(config);
@@ -150,22 +138,20 @@
                 exception: Error,
                 config: Interfaces.RequestConfig;
 
-            console.error("HttpInterceptor.requestError", [rejection]);
-
             if (rejection instanceof Error) {
                 // Occurs for any uncaught exceptions that occur in other interceptors.
                 exception = <Error>rejection;
-                this.Logger.logError("An request exception was encountered in the HttpInterceptor.requestError().", exception);
+                this.Logger.error(HttpInterceptor.ID, "requestError", "An uncaught exception occurred during an HTTP interceptor's request method.", exception);
                 this.handleFatalError();
             }
             else {
                 // Occurs if any other interceptors reject the request.
-                this.Logger.logError("An request rejection was encountered in the HttpInterceptor.requestError().", null);
-
                 httpResponse = <ng.IHttpPromiseCallbackArg<any>>rejection;
 
                 // Cast to our custom type which includes some extra flags.
                 config = <Interfaces.RequestConfig>httpResponse.config;
+
+                this.Logger.error(HttpInterceptor.ID, "requestError", "A request rejection was encountered.", this.Utilities.sanitizeResponseForLogging(httpResponse));
 
                 // Keep track of how many requests are still in progress and hide spinners etc.
                 if (config) {
@@ -187,11 +173,9 @@
                 exception: Error,
                 config: Interfaces.RequestConfig;
 
-            console.log("HttpInterceptor.responseError", [responseOrError]);
-
             if (responseOrError instanceof Error) {
                 exception = <Error>responseOrError;
-                this.Logger.logError("An response error was encountered in the HttpInterceptor.responseError().", exception);
+                this.Logger.error(HttpInterceptor.ID, "responseError", "An uncaught exception occurred during an HTTP interceptor's response method.", exception);
                 this.handleFatalError();
             }
             else {
@@ -205,8 +189,7 @@
                     return this.$q.reject(responseOrError);
                 }
 
-                // Always log error responses.
-                this.Logger.logHttpResponse(httpResponse);
+                this.Logger.debug(HttpInterceptor.ID, "responseError", "A non-200 level status code was received.", this.Utilities.sanitizeResponseForLogging(httpResponse));
 
                 // Keep track of how many requests are still in progress and hide spinners etc.
                 this.handleResponseEnd(config);
@@ -249,17 +232,20 @@
                 this.blockingRequestsInProgress += 1;
 
                 // If this wasn't the first blocking HTTP request, we need to hide the previous
-                // blocking progress indicator before we show the new one.
-                if (this.blockingRequestsInProgress > 1) {
-                    this.UiHelper.progressIndicator.hide();
+                // blocking progress indicator before we show the new one on iOS because the iOS
+                // plugin will create a new instance and hide only operates on the last instance.
+                // If we don't do this here, it will result in being unable to hide progress
+                // indicators when multiple are shown.
+                if (this.Utilities.isIos && this.blockingRequestsInProgress > 1) {
+                    this.Plugins.progressIndicator.hide();
                 }
 
                 // Show the blocking progress indicator with or without text.
                 if (config.blockingText) {
-                    this.UiHelper.progressIndicator.showSimpleWithLabel(true, config.blockingText);
+                    this.Plugins.progressIndicator.showSimpleWithLabel(true, config.blockingText);
                 }
                 else {
-                    this.UiHelper.progressIndicator.showSimple(true);
+                    this.Plugins.progressIndicator.showSimple(true);
                 }
 
                 // Let the rest of the application know that blocking requests are in progress.
@@ -298,8 +284,21 @@
             this.requestsInProgress = 0;
             this.blockingRequestsInProgress = 0;
             this.spinnerRequestsInProgress = 0;
+
+            /* tslint:disable:no-string-literal */
+            this.$rootScope["nonBlockingRequestInProgress"] = false;
+            this.$rootScope["blockingRequestInProgress"] = false;
+            /* tslint:enable:no-string-literal */
+
             NProgress.done();
-            this.UiHelper.progressIndicator.hide();
+            this.Plugins.progressIndicator.hide();
+
+            let error: ng.IHttpPromiseCallbackArg<any> = {
+                status: 0,
+                statusText: "Fatal error occurred in HttpInterceptor."
+            };
+
+            this.$rootScope.$broadcast(Constants.Events.HTTP_ERROR, error);
         }
 
         /**
@@ -322,7 +321,7 @@
 
             // If there are no more blocking requests in progress, then hide the blocker.
             if (config.blocking && this.blockingRequestsInProgress === 0) {
-                this.UiHelper.progressIndicator.hide();
+                this.Plugins.progressIndicator.hide();
 
                 // Let the rest of the application know that all blocking requests are finished.
                 /* tslint:disable:no-string-literal */
@@ -341,7 +340,7 @@
                 this.$rootScope["nonBlockingRequestInProgress"] = false;
                 /* tslint:enable:no-string-literal */
             }
-            else {
+            else if (config.showSpinner) {
                 // If there are still spinner requests in progress, then kick up the progress
                 // bar a little bit to show some of the work has completed.
                 NProgress.inc();

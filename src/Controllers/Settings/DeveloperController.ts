@@ -9,7 +9,7 @@
         public static get $inject(): string[] {
             return [
                 "$scope",
-                "$http",
+                Services.Plugins.ID,
                 Services.Utilities.ID,
                 Services.UiHelper.ID,
                 Services.FileUtilities.ID,
@@ -22,7 +22,7 @@
 
         constructor(
             $scope: ng.IScope,
-            private $http: ng.IHttpService,
+            private Plugins: Services.Plugins,
             private Utilities: Services.Utilities,
             private UiHelper: Services.UiHelper,
             private FileUtilities: Services.FileUtilities,
@@ -42,11 +42,13 @@
 
             this.viewModel.mockApiRequests = this.Configuration.enableMockHttpCalls;
 
-            this.viewModel.enableFullHttpLogging = this.Configuration.enableFullHttpLogging;
 
-            this.viewModel.logToLocalStorage = this.Logger.getLogToLocalStorage();
+            this.viewModel.devicePlatform = this.Utilities.device.platform;
+            this.viewModel.deviceModel = this.Utilities.device.model;
+            this.viewModel.deviceOsVersion = this.Utilities.device.version;
+            this.viewModel.deviceUuid = this.Utilities.device.uuid;
+            this.viewModel.deviceCordovaVersion = this.Utilities.device.cordova;
 
-            this.viewModel.devicePlatform = this.Utilities.platform;
             this.viewModel.defaultStoragePathId = this.FileUtilities.getDefaultRootPathId();
             this.viewModel.defaultStoragePath = this.FileUtilities.getDefaultRootPath();
         }
@@ -77,6 +79,12 @@
             this.UiHelper.alert(helpMessage, "Help");
         }
 
+        protected debuggerBreak_click(): void {
+            /* tslint:disable:no-debugger */
+            debugger;
+            /* tslint:enable:no-debugger */
+        }
+
         protected mockApiRequests_change(): void {
 
             this.Configuration.enableMockHttpCalls = this.viewModel.mockApiRequests;
@@ -90,27 +98,11 @@
             });
         }
 
-        protected enableFullHttpLogging_change(): void {
-            this.Configuration.enableFullHttpLogging = this.viewModel.enableFullHttpLogging;
-        }
-
-        protected logResponseErrors_click(): void {
-            this.UiHelper.alert("HTTP response errors are always logged.");
-        }
-
-        protected logToLocalStorage_change(): void {
-            this.Logger.setLogToLocalStorage(this.viewModel.logToLocalStorage);
-
-            if (this.viewModel.logToLocalStorage) {
-                this.UiHelper.alert("Logs will now be written to local storage for this session only.");
-            }
-        }
-
         protected userToken_click(token: string): void {
             this.UiHelper.confirm("Copy token to clipboard?").then((result: string) => {
                 if (result === Constants.Buttons.Yes) {
-                    this.UiHelper.clipboard.copy(token);
-                    this.UiHelper.toast.showShortBottom("Token copied to clipboard.");
+                    this.Plugins.clipboard.copy(token);
+                    this.Plugins.toast.showShortBottom("Token copied to clipboard.");
                 }
             });
         }
@@ -123,6 +115,7 @@
                 "Logger": this.Logger,
                 "Utilities": this.Utilities,
                 "UiHelper": this.UiHelper,
+                "Plugins": this.Plugins,
                 "Configuration": this.Configuration,
                 "MockPlatformApis": this.MockPlatformApis
             };
@@ -169,7 +162,7 @@
         protected testNativeException_click(): void {
             this.UiHelper.confirm("Are you sure you want to cause a native crash? This requires the Crashlytics plug-in to be installed.").then((result: string) => {
                 if (result === Constants.Buttons.Yes) {
-                    this.UiHelper.crashlytics.simulateCrash();
+                    this.Plugins.crashlytics.simulateCrash();
                 }
             });
         }
@@ -196,23 +189,23 @@
         }
 
         protected showFullScreenBlock_click(): void {
-            this.UiHelper.progressIndicator.showSimpleWithLabel(true, "Blocking...");
+            this.Plugins.progressIndicator.showSimpleWithLabel(true, "Blocking...");
 
             setTimeout(() => {
-                this.UiHelper.progressIndicator.hide();
+                this.Plugins.progressIndicator.hide();
             }, 4000);
         }
 
         protected showToast_top(): void {
-            this.UiHelper.toast.showShortTop("This is a test toast notification.");
+            this.Plugins.toast.showShortTop("This is a test toast notification.");
         }
 
         protected showToast_center(): void {
-            this.UiHelper.toast.showShortCenter("This is a test toast notification.");
+            this.Plugins.toast.showShortCenter("This is a test toast notification.");
         }
 
         protected showToast_bottom(): void {
-            this.UiHelper.toast.showShortBottom("This is a test toast notification.");
+            this.Plugins.toast.showShortBottom("This is a test toast notification.");
         }
 
         protected clipboard_copy(): void {
@@ -223,7 +216,7 @@
                     return;
                 }
 
-                this.UiHelper.clipboard.copy(result.value, () => {
+                this.Plugins.clipboard.copy(result.value, () => {
                     this.UiHelper.alert("Copy OK!");
                 }, (err: Error) => {
                     this.UiHelper.alert("Copy Failed!\n\n" + (err ? err.message : "Unknown Error"));
@@ -232,7 +225,7 @@
         }
 
         protected clipboard_paste(): void {
-            this.UiHelper.clipboard.paste((result: string) => {
+            this.Plugins.clipboard.paste((result: string) => {
                 this.UiHelper.alert("Paste OK! Value retrieved is:\n\n" + result);
             }, (err: Error) => {
                 this.UiHelper.alert("Paste Failed!\n\n" + (err ? err.message : "Unknown Error"));
@@ -259,8 +252,8 @@
                 }
 
                 this.FileUtilities.readTextFile(result.value)
-                    .then((text: string) => { console.log(text); this.UiHelper.alert(text); },
-                    (err: Error) => { console.error(err); this.alertFileIoError(err); });
+                    .then((text: string) => { this.Logger.debug(DeveloperController.ID, "readFile_click", "Read OK.", text); this.UiHelper.alert(text); },
+                    (err: Error) => { this.Logger.error(DeveloperController.ID, "readFile_click", "An error occurred.", err); this.alertFileIoError(err); });
             });
         }
 
@@ -285,8 +278,8 @@
                     contents = result.value;
 
                     this.FileUtilities.writeTextFile(path, contents, false)
-                        .then(() => { console.log("WRITE OK"); this.UiHelper.alert("WRITE OK"); },
-                        (err: Error) => { console.error(err); this.alertFileIoError(err); });
+                        .then(() => { this.Logger.debug(DeveloperController.ID, "writeFile_click", "Write OK.", { path: path, contents: contents }); this.UiHelper.alert("Write OK."); },
+                        (err: Error) => { this.Logger.error(DeveloperController.ID, "writeFile_click", "An error occurred.", err); this.alertFileIoError(err); });
                 });
             });
         }
@@ -310,8 +303,8 @@
                     contents = result.value;
 
                     this.FileUtilities.writeTextFile(path, contents, true)
-                        .then(() => { console.log("APPEND OK"); this.UiHelper.alert("APPEND OK"); },
-                        (err: Error) => { console.error(err); this.alertFileIoError(err); });
+                        .then(() => { this.Logger.debug(DeveloperController.ID, "appendFile_click", "Append OK.", { path: path, contents: contents }); this.UiHelper.alert("Append OK."); },
+                        (err: Error) => { this.Logger.error(DeveloperController.ID, "appendFile_click", "An error occurred.", err); this.alertFileIoError(err); });
                 });
             });
         }
@@ -328,17 +321,8 @@
                 path = result.value;
 
                 this.FileUtilities.createDirectory(path)
-                    .then(() => { console.log("CREATE DIR OK"); this.UiHelper.alert("CREATE DIR OK"); },
-                    (err: Error) => { console.error(err); this.alertFileIoError(err); });
-            });
-        }
-
-        protected defaultStoragePath_click(path: string): void {
-            this.UiHelper.confirm("Copy path to clipboard?").then((result: string) => {
-                if (result === Constants.Buttons.Yes) {
-                    this.UiHelper.clipboard.copy(path);
-                    this.UiHelper.toast.showShortBottom("Path copied to clipboard.");
-                }
+                    .then(() => { this.Logger.debug(DeveloperController.ID, "createDir_click", "Create directory OK.", path); this.UiHelper.alert("Create directory OK."); },
+                    (err: Error) => { this.Logger.error(DeveloperController.ID, "createDir_click", "An error occurred.", err); this.alertFileIoError(err); });
             });
         }
 
@@ -356,7 +340,7 @@
 
                 this.FileUtilities.getFilePaths(path)
                     .then((files: any) => {
-                        console.log(files);
+                        this.Logger.debug(DeveloperController.ID, "listFiles_click", "Get file paths OK.", files);
 
                         files.forEach((value: string) => {
                             list += "\n" + value;
@@ -365,7 +349,7 @@
                         this.UiHelper.alert(list);
                     },
                     (err: Error) => {
-                        console.error(err);
+                        this.Logger.error(DeveloperController.ID, "listFiles_click", "An error occurred.", err);
                         this.alertFileIoError(err);
                     });
             });
@@ -385,7 +369,7 @@
 
                 this.FileUtilities.getDirectoryPaths(path)
                     .then((dirs: any) => {
-                        console.log(dirs);
+                        this.Logger.debug(DeveloperController.ID, "listDirs_click", "Get directory paths OK.", dirs);
 
                         dirs.forEach((value: string) => {
                             list += "\n" + value;
@@ -394,7 +378,7 @@
                         this.UiHelper.alert(list);
                     },
                     (err: Error) => {
-                        console.error(err);
+                        this.Logger.error(DeveloperController.ID, "listDirs_click", "An error occurred.", err);
                         this.alertFileIoError(err);
                     });
             });
@@ -412,8 +396,8 @@
                 path = result.value;
 
                 this.FileUtilities.deleteFile(path)
-                    .then(() => { console.log("DELETE FILE OK"); this.UiHelper.alert("DELETE FILE OK"); },
-                    (err: Error) => { console.error(err); this.alertFileIoError(err); });
+                    .then(() => { this.Logger.debug(DeveloperController.ID, "deleteFile_click", "Delete file OK.", path); this.UiHelper.alert("Delete file OK."); },
+                    (err: Error) => { this.Logger.error(DeveloperController.ID, "deleteFile_click", "An error occurred.", err); this.alertFileIoError(err); });
             });
         }
 
@@ -429,8 +413,8 @@
                 path = result.value;
 
                 this.FileUtilities.deleteDirectory(path)
-                    .then(() => { console.log("DELETE DIR OK"); this.UiHelper.alert("DELETE FILE OK"); },
-                    (err: Error) => { console.error(err); this.alertFileIoError(err); });
+                    .then(() => { this.Logger.debug(DeveloperController.ID, "deleteDir_click", "Delete directory OK.", path); this.UiHelper.alert("Delete directory OK"); },
+                    (err: Error) => { this.Logger.error(DeveloperController.ID, "deleteDir_click", "An error occurred.", err); this.alertFileIoError(err); });
             });
         }
 

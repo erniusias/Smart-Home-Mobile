@@ -17,6 +17,7 @@ module JustinCredible.SmartHomeMobile.Application {
         $location: ng.ILocationService,
         $ionicHistory: any,
         $ionicConfig: any,
+        Plugins: Services.Plugins,
         Utilities: Services.Utilities,
         UiHelper: Services.UiHelper,
         Preferences: Services.Preferences,
@@ -32,6 +33,17 @@ module JustinCredible.SmartHomeMobile.Application {
      * user to pause and then kill the app and bypass the PIN entry screen on next resume).
      */
     var isShowingSecurityPrompt: boolean;
+
+    /**
+     * Keeps track of the application being in the background or not.
+     * This flag is updated via the device_pause and device_resume events.
+     */
+    var appIsInBackground: boolean = false;
+
+    /**
+     * Stores the current Angular route for debugging.
+     */
+    var currentRoute: string = "";
 
     //#endregion
 
@@ -325,6 +337,7 @@ module JustinCredible.SmartHomeMobile.Application {
         $ionicHistory: any,
         $ionicPlatform: Ionic.IPlatform,
         $ionicConfig: any,
+        Plugins: Services.Plugins,
         Utilities: Services.Utilities,
         UiHelper: Services.UiHelper,
         Preferences: Services.Preferences,
@@ -339,6 +352,7 @@ module JustinCredible.SmartHomeMobile.Application {
             $location: $location,
             $ionicHistory: $ionicHistory,
             $ionicConfig: $ionicConfig,
+            Plugins: Plugins,
             Utilities: Utilities,
             UiHelper: UiHelper,
             Preferences: Preferences,
@@ -361,11 +375,33 @@ module JustinCredible.SmartHomeMobile.Application {
 
         // We use this combination of settings so prevent the visual jank that
         // would otherwise occur when tapping an input that shows the keyboard.
-        UiHelper.keyboard.disableScroll(true);
-        UiHelper.keyboard.hideKeyboardAccessoryBar(false);
+        Plugins.keyboard.disableScroll(true);
+        Plugins.keyboard.hideKeyboardAccessoryBar(false);
 
         // Mock up or allow HTTP responses.
         MockHttpApis.mockHttpCalls(Configuration.enableMockHttpCalls);
+
+        // Special code for Windows IoT devices.
+        if (services.Utilities.isWindowsIoT) {
+
+            // Currently the Rasberry Pi 2 isn't powerful enough to handle animations.
+            services.$ionicConfig.views.transition("none");
+
+            // Cordova doesn't currently recognize Windows 10 UWP on an IoT device
+            // and therefore will never fire the device ready event, so we do it
+            // here manually.
+
+            var ActivationKind = services.Utilities.getValue(window, "Windows.ApplicationModel.Activation.ActivationKind");
+
+            WinJS.Application.onactivated = (args: any) => {
+                if (args.detail.kind === ActivationKind.launch) {
+                    ionicPlatform_ready();
+                    args.setPromise(WinJS.UI.processAll());
+                }
+            };
+
+            WinJS.Application.oncheckpoint = function (args) { device_pause(); };
+        }
     };
 
     /**
@@ -444,6 +480,8 @@ module JustinCredible.SmartHomeMobile.Application {
      */
     function device_pause(): void {
 
+        appIsInBackground = true;
+
         if (!isShowingSecurityPrompt) {
             // Store the current date/time. This will be used to determine if we need to
             // show the PIN lock screen the next time the application is resumed.
@@ -457,6 +495,8 @@ module JustinCredible.SmartHomeMobile.Application {
      * to switch back to the application.
      */
     function device_resume(): void {
+
+        appIsInBackground = false;
 
         isShowingSecurityPrompt = true;
 
@@ -474,10 +514,16 @@ module JustinCredible.SmartHomeMobile.Application {
                     disableBack: true
                 });
 
-                // Navigate the user to their default view.
-                var category = services.Preferences.getCategoryByName(services.Preferences.defaultCategoryName);
-                services.$location.path(category.href.substring(1));
-                services.$location.replace();
+                if (services.Utilities.isWindowsIoT) {
+                    services.$location.path("/app/dashboard");
+                    services.$location.replace();
+                }
+                else {
+                    // Navigate the user to their default view.
+                    var category = services.Preferences.getCategoryByName(services.Preferences.defaultCategoryName);
+                    services.$location.path(category.href.substring(1));
+                    services.$location.replace();
+                }
             }
         });
     }
@@ -496,8 +542,15 @@ module JustinCredible.SmartHomeMobile.Application {
      * Fired when Angular's route/location (eg URL hash) is changing.
      */
     function angular_locationChangeStart(event: ng.IAngularEvent, newRoute: string, oldRoute: string): void {
-        console.log("Location change, old Route: " + oldRoute);
-        console.log("Location change, new Route: " + newRoute);
+
+        // Chop off the long "file://..." prefix (we only care about the hash tag).
+        newRoute = newRoute.substring(newRoute.indexOf("#"));
+        oldRoute = oldRoute.substring(oldRoute.indexOf("#"));
+
+        // Save off the current route so we can use it for logging.
+        currentRoute = newRoute;
+
+        services.Logger.trace("Application", "angular_locationChangeStart", "Angular location changed.", { oldRoute: oldRoute, newRoute: newRoute });
     };
 
     /**
@@ -505,25 +558,24 @@ module JustinCredible.SmartHomeMobile.Application {
      */
     function window_onerror(message: any, uri: string, lineNumber: number, columnNumber?: number): void {
 
-        console.error("Unhandled JS Exception", message, uri, lineNumber, columnNumber);
+        // Log the exception using the built-in logger.
+        try {
+            services.Logger.error("Application", "window_onerror", message, { uri: uri, lineNumber: lineNumber, columnNumber: columnNumber, currentRoute: currentRoute });
+        }
+        catch (ex) {
+            // If logging failed there is no use trying to log the failure.
+        }
 
         try {
             // Show a generic message to the user.
-            services.UiHelper.toast.showLongBottom("An error has occurred; please try again.");
+            services.Plugins.toast.showLongBottom("An error has occurred; please try again.");
 
             // If this exception occurred in the HttpInterceptor, there may still be a progress indicator on the scrren.
-            services.UiHelper.progressIndicator.hide();
+            services.Plugins.progressIndicator.hide();
         }
         catch (ex) {
-            console.warn("There was a problem alerting the user to an Angular error; falling back to a standard alert().", ex);
+            services.Logger.warn("Application", "window_onerror", "There was a problem alerting the user to an Angular error; falling back to a standard alert().", ex);
             alert("An error has occurred; please try again.");
-        }
-
-        try {
-            services.Logger.logWindowError(message, uri, lineNumber, columnNumber);
-        }
-        catch (ex) {
-            console.error("An error occurred while attempting to log an exception.", ex);
         }
     }
 
@@ -533,31 +585,35 @@ module JustinCredible.SmartHomeMobile.Application {
      * This includes uncaught exceptions in ng-click methods for example.
      */
     function angular_exceptionHandler(exception: Error, cause: string): void {
+
         var message = exception.message;
+
+        if (!message) {
+            message = "An unknown error ocurred in an Angular event.";
+        }
 
         if (!cause) {
             cause = "[Unknown]";
         }
 
-        console.error("AngularJS Exception", exception, cause);
+        // Log the exception using the built-in logger.
+        try {
+            services.Logger.error("Application", "angular_exceptionHandler", message, { cause: cause, exception: exception, route: currentRoute });
+        }
+        catch (ex) {
+            // If logging failed there is no use trying to log the failure.
+        }
 
         try {
             // Show a generic message to the user.
-            services.UiHelper.toast.showLongBottom("An error has occurred; please try again.");
+            services.Plugins.toast.showLongBottom("An error has occurred; please try again.");
 
             // If this exception occurred in the HttpInterceptor, there may still be a progress indicator on the scrren.
-            services.UiHelper.progressIndicator.hide();
+            services.Plugins.progressIndicator.hide();
         }
         catch (ex) {
-            console.warn("There was a problem alerting the user to an Angular error; falling back to a standard alert().", ex);
+            services.Logger.warn("Application", "angular_exceptionHandler", "There was a problem alerting the user to an Angular error; falling back to a standard alert().", ex);
             alert("An error has occurred; please try again.");
-        }
-
-        try {
-            services.Logger.logError("Angular exception caused by " + cause, exception);
-        }
-        catch (ex) {
-            console.error("An error occurred while attempting to log an Angular exception.", ex);
         }
     }
 
