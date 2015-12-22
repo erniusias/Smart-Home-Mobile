@@ -154,6 +154,16 @@ module JustinCredible.SmartHomeMobile {
                 }
             });
 
+            $stateProvider.state("app.gateway", {
+                url: "/settings/gateway",
+                views: {
+                    "tab-settings": {
+                        templateUrl: "templates/Settings/Gateway.html",
+                        controller: Controllers.GatewayController.ID
+                    }
+                }
+            });
+
             $stateProvider.state("app.dashboard-config", {
                 url: "/settings/dashboard",
                 views: {
