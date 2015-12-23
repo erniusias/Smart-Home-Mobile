@@ -7,7 +7,8 @@
         public userName: string;
         public password: string;
         public confirmPassword: string;
-	public wifi:string;
+        public session: string;
+		public wifi:string;
     }
 
 }

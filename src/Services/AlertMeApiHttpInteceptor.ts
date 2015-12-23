@@ -94,6 +94,7 @@
         /**
          * Fired when a response completes with a non-200 level status code.
          */
+
         public responseError(responseOrError: any): ng.IPromise<void> {
             var $http: ng.IHttpService,
                 AlertMeApi: Services.AlertMeApi,
@@ -101,7 +102,7 @@
                 exception: Error,
                 config: Interfaces.RequestConfig,
                 q = this.$q.defer<any>();
-
+return this.$q.reject(responseOrError);
             if (responseOrError instanceof Error) {
                 exception = <Error>responseOrError;
                 this.Logger.error(AlertMeApiHttpInteceptor.ID, "responseError", "An uncaught exception occurred during an HTTP interceptor's response method.", exception);

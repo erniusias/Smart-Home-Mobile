@@ -55,12 +55,29 @@
             </label>
 
         </div>
+        <div class="item item-body">
+                <p>session:</p>
+                <p>{{viewModel.session}}</p>
+         </div>
 
         <div class="padding">
             <button class="button button-block button-balanced"
                     ng-show="viewModel.showSaveButton"
                     ng-click="controller.save_click()">
                 Save Changes
+            </button>
+        </div>
+
+        <div class="padding">
+            <button class="button button-block button-balanced"
+                    ng-click="controller.login_click()">
+                Login Gateway
+            </button>
+        </div>
+        <div class="padding">
+            <button class="button button-block button-balanced"
+                    ng-click="controller.info_click()">
+                system_info
             </button>
         </div>
 

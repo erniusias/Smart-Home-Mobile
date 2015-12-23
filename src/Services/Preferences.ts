@@ -26,6 +26,11 @@
 
         //#region Local Storage Keys
 
+        private static UBUS_RPC_URL="http://192.168.8.127/ubus"
+        private static UBUS_RPC_USER_NAME="root"
+        private static UBUS_RPC_PASSWORD = "admin"
+        private static UBUS_RPC_SESSION = ""
+
         private static PIN = "PIN";
 
         private static DEFAULT_CATEGORY_NAME = "DEFAULT_CATEGORY_NAME";
@@ -241,6 +246,111 @@
         private get passphraseHash(): string {
             return localStorage.getItem(Preferences.USER_PASSPHRASE_ENCRYPTED_ARBITRARY_VALUE);
         }
+
+        //#endregion
+
+        //#region Ubus Rpc URLs/Credentials
+        get ubusRpcSession(): string {
+            return localStorage.getItem(Preferences.UBUS_RPC_SESSION) ;
+        }
+
+        set ubusRpcSession(value: string) {
+            if(value == null) {
+                localStorage.removeItem(Preferences.UBUS_RPC_SESSION);
+            }else{
+                localStorage.setItem( Preferences.UBUS_RPC_SESSION, value);
+            }
+        }
+
+        get ubusRpcUrl(): string {
+            return localStorage.getItem(Preferences.UBUS_RPC_URL);
+        }
+
+        set ubusRpcUrl(value: string) {
+            if (value == null) {
+                localStorage.removeItem(Preferences.UBUS_RPC_URL);
+            }
+            else {
+                localStorage.setItem(Preferences.UBUS_RPC_URL, value);
+            }
+        }
+        get ubusRpcUserName(): string {
+
+            var value =  localStorage.getItem(Preferences.UBUS_RPC_USER_NAME);
+
+            // When running as a Chrome extension, the value will be encrypted with the user's passphrase.
+            // Therefore we need to decrypt it here before returning it.
+            if (value && this.Utilities.isChromeExtension && this.isPassphraseConfigured) {
+
+                if (!this.getPassphraseForSession()) {
+                    throw new Error("A passphrase is configured, but one has not be set for the current session so the preference value cannot be decrypted.");
+                }
+
+                value = CryptoJS.AES.decrypt(value, this.getPassphraseForSession()).toString(CryptoJS.enc.Utf8);
+            }
+
+            return value;
+        }
+
+        set ubusRpcUserName(value: string) {
+            if (value == null) {
+                localStorage.removeItem(Preferences.UBUS_RPC_USER_NAME);
+            }
+            else if (this.Utilities.isChromeExtension && this.isPassphraseConfigured) {
+                // When running as a Chrome extension we'll encrypt the value with the user's passphrase
+                // Therefore we need to decrypt it here before returning it.
+
+                if (!this.getPassphraseForSession()) {
+                    throw new Error("A passphrase is configured, but one has not be set for the current session so the preference value cannot be encrypted.");
+                }
+
+                var encryptedValue = CryptoJS.AES.encrypt(value, this.getPassphraseForSession()).toString();
+                localStorage.setItem(Preferences.UBUS_RPC_USER_NAME, encryptedValue);
+            }
+            else {
+                localStorage.setItem(Preferences.UBUS_RPC_USER_NAME, value);
+            }
+        }
+
+        get ubusRpcPassword(): string {
+
+            var value = localStorage.getItem(Preferences.UBUS_RPC_PASSWORD);
+
+            // When running as a Chrome extension, the value will be encrypted with the user's passphrase.
+            // Therefore we need to decrypt it here before returning it.
+            if (value && this.Utilities.isChromeExtension && this.isPassphraseConfigured) {
+
+                if (!this.getPassphraseForSession()) {
+                    throw new Error("A passphrase is configured, but one has not be set for the current session so the preference value cannot be decrypted.");
+                }
+
+                value = CryptoJS.AES.decrypt(value, this.getPassphraseForSession()).toString(CryptoJS.enc.Utf8);
+            }
+
+            return value;
+        }
+
+        set ubusRpcPassword(value: string) {
+            if (value == null) {
+                localStorage.removeItem(Preferences.UBUS_RPC_PASSWORD);
+            }
+            else if (this.Utilities.isChromeExtension && this.isPassphraseConfigured) {
+                // When running as a Chrome extension we'll encrypt the value with the user's passphrase
+                // Therefore we need to decrypt it here before returning it.
+
+                if (!this.getPassphraseForSession()) {
+                    throw new Error("A passphrase is configured, but one has not be set for the current session so the preference value cannot be encrypted.");
+                }
+
+                var encryptedValue = CryptoJS.AES.encrypt(value, this.getPassphraseForSession()).toString();
+                localStorage.setItem(Preferences.UBUS_RPC_PASSWORD, encryptedValue);
+            }
+            else {
+                localStorage.setItem(Preferences.UBUS_RPC_PASSWORD, value);
+            }
+        }
+
+
 
         //#endregion
 
