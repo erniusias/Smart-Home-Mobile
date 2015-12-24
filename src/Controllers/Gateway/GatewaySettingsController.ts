@@ -1,0 +1,39 @@
+module JustinCredible.SmartHomeMobile.Controllers {
+
+    export class GatewaySettingsController extends BaseController<ViewModels.GatewaySettingsViewModel> {
+
+        //#region Injection
+
+        public static ID = "GatewaySettingsController";
+
+        public static get $inject(): string[] {
+            return [
+                "$scope",
+                Services.Utilities.ID,
+                Services.Configuration.ID
+            ];
+        }
+
+        constructor(
+            $scope: ng.IScope,
+            private Utilities: Services.Utilities,
+            private Configuration: Services.Configuration) {
+            super($scope, ViewModels.GatewaySettingsViewModel);
+        }
+
+        //#endregion
+
+        //#region BaseController Overrides
+
+        protected view_beforeEnter(event?: ng.IAngularEvent, eventArgs?: Ionic.IViewEventArguments): void {
+            super.view_beforeEnter(event, eventArgs);
+
+            this.viewModel.isDebugMode = this.Utilities.isDebugMode;
+            this.viewModel.isDeveloperMode = this.Configuration.enableDeveloperTools;
+            this.viewModel.showPin = !this.Utilities.isChromeExtension || this.Utilities.isWindows;
+            this.viewModel.showPassphrase = this.Utilities.isChromeExtension || this.Utilities.isWindows;
+        }
+
+        //#endregion
+    }
+}

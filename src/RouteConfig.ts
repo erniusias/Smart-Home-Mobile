@@ -272,6 +272,48 @@ module JustinCredible.SmartHomeMobile {
 
             //#endregion
 
+            //#region gateway Settings
+
+            $stateProvider.state("app.gateway-settings", {
+                url: "/gateway/settings",
+                views: {
+                    "tab-settings": {
+                        templateUrl: "templates/Gateway/GatewaySettings.html",
+                        controller: Controllers.GatewaySettingsController.ID
+                    }
+                }
+            });
+/*
+            $stateProvider.state("app.gateway.wifi", {
+                url: "/gatway/wifi",
+                views: {
+                    "tab-settings": {
+                        templateUrl: "templates/Gateway/Wifi.html",
+                        controller: Controllers.WifiController.ID
+                    }
+                }
+            });
+
+            $stateProvider.state("app.gateway.wan", {
+                url: "/gateway/wan",
+                views: {
+                    "tab-settings": {
+                        templateUrl: "templates/Gateway/Wan.html",
+                        controller: Controllers.WanController.ID
+                    }
+                }
+            });
+*/
+            $stateProvider.state("app.gateway-overview", {
+                url: "/gateway/overview",
+                views: {
+                    "tab-settings": {
+                        templateUrl: "templates/Gateway/Overview.html",
+                        controller: Controllers.GatewayOverviewController.ID
+                    }
+                }
+            });
+            //#endregion
 
             // If none of the above states are matched, use the blank route.
             $urlRouterProvider.otherwise("/app/blank");

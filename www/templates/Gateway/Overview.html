@@ -1,0 +1,75 @@
+<ion-view view-title="系统概览">
+
+    <ion-nav-buttons side="right">
+        <button class="button icon ion-loop" ng-click="controller.refresh_click()" ng-hide="blockingRequestInProgress || nonBlockingRequestInProgress"></button>
+    </ion-nav-buttons>
+
+    <ion-content class="has-header" padding="true">
+
+        <ion-refresher pulling-text="下拉刷新..."
+                       refreshing-text="刷新中..."
+                       on-refresh="controller.refresher_refresh()">
+        </ion-refresher>
+
+        <div class="last-updated-row">最近更新时间 {{viewModel.lastUpdated | date}}</div>
+
+
+
+
+
+        <div class="list list-inset">
+            <div class="item item-divider">
+                基本信息
+            </div>
+            <div class="item">
+                <div calss="row responsive-sm">
+                    <div class="col">系统时间:</div>
+                    <div calss="col col-75">{{viewModel.systemInfo.localtime }}，{{viewModel.systemInfo.localtime | date:'yyyy-MM-dd HH:mm:ss Z'}}</div>
+                </div>
+            </div>
+            <div class="item">
+                <div calss="row">
+                    <div class="col">运行时间:</div>
+                    <div calss="col col-75">{{viewModel.systemInfo.uptime | date:'yyyy-MM-dd HH:mm:ss Z'}}</div>
+                </div>
+            </div>
+             <div class="item">
+                <div calss="row">
+                    <div class="col">系统负载:</div>
+                    <div calss="col col-75">{{viewModel.systemInfo.load[0]}}, {{viewModel.systemInfo.load[1]}}, {{viewModel.systemInfo.load[2]}}</div>
+                </div>
+            </div>
+
+            <div class="item item-divider">
+                Contact Sensors
+            </div>
+
+            <div ng-repeat="device in viewModel.alarmOverviewData.otherDevices | ObjectToArray | filter: { type: 'ContactSensor' }"
+                 ng-hide="viewModel.isRefreshing"
+                 class="item item-icon-right">
+                <i class="icon"
+                   ng-class="{ 'ion-checkmark-round': device.state === 'CLOSED', 'ion-close-round': device.state === 'OPENED', 'ion-alert-circled': device.state !== 'CLOSED' && device.status !== 'OPENED', 'assertive': device.state === 'OPENED' && viewModel.alarmData.state === 'ARMED', 'energized': device.state === 'OPENED' && viewModel.alarmData.state === 'DISARMED' }"></i>
+                {{ device.name }}
+            </div>
+
+            <div class="item item-divider">
+                Other Devices
+            </div>
+
+            <div ng-repeat="device in viewModel.alarmOverviewData.otherDevices | ObjectToArray | filter: { type: '!ContactSensor' }"
+                 ng-hide="viewModel.isRefreshing"
+                 class="item item-icon-right">
+                <i class="icon"
+                   ng-class="{ 'ion-checkmark-round': device.state === '', 'ion-alert-circled': device.status !== '', 'assertive': device.status === ''}"></i>
+                {{ device.name + controller.Utilities.toTitleCase(device.status) }}
+            </div>
+
+            <div class="item" ng-show="viewModel.isRefreshing" style="text-align:center;">
+                <i class="icon ion-load-c ion-spin-animation"></i>
+            </div>
+
+        </div>
+
+    </ion-content>
+
+</ion-view>

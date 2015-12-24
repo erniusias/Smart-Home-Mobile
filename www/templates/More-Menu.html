@@ -1,6 +1,13 @@
-<ion-popover-view class="tabPop" style="height: 115px;">
+<ion-popover-view class="tabPop" style="height: 173px;">
     <ion-content>
         <ion-list>
+
+            <ion-item class="item-icon-left menu-close"
+                ng-click="controller.popover.hide()"
+                ui-sref="app.gateway-settings">
+                <i class="icon ion-wifi"></i>
+                网关
+            </ion-item>
 
             <ion-item class="item-icon-left menu-close"
                 ng-click="controller.popover.hide()"
